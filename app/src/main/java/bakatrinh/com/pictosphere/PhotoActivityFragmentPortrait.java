@@ -102,9 +102,7 @@ public class PhotoActivityFragmentPortrait extends Fragment {
                         break;
 
                     case 1:
-                        id = mContext.mImagesContainer.get(position).get(0);
-                        filePath = mContext.mImagesContainer.get(position).get(4);
-                        Log.d(MainActivity.TAG, "pencil clicked: (" + id + ") " + filePath);
+                        mContext.editImage(position);
                         break;
                 }
                 // false : close the menu; true : not close the menu

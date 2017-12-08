@@ -18,7 +18,7 @@ import android.content.ContentUris;
 import java.util.HashMap;
 
 public class PictosphereStorage extends ContentProvider {
-    private static final int DB_VERSION = 5;
+    private static final int DB_VERSION = 6;
     private static HashMap<String, String> DEVICES_PROJECT_MAP;
     private static SQLiteDatabase db;
     private PictosphereStorageHelper mOpenHelper;
@@ -41,7 +41,7 @@ public class PictosphereStorage extends ContentProvider {
     static final String COLUMN_IMAGE_POSTS_MESSAGE = "message";
     static final String COLUMN_IMAGE_POSTS_DATE = "date_created";
 
-    private static final String CREATE_DB_TABLE = "CREATE TABLE " + PICTOSPHERE_IMAGE_POSTS_TABLE + "( " + COLUMN_IMAGE_POSTS_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + COLUMN_IMAGE_POSTS_USER_ID + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_LONGITUDE + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_LATITUDE + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_IMAGE + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_IMAGE_THUMB + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_ADDRESS + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_MESSAGE + " TEXT, " + COLUMN_IMAGE_POSTS_DATE + " DATETIME DEFAULT (datetime('now','localtime')))";
+    private static final String CREATE_DB_TABLE = "CREATE TABLE " + PICTOSPHERE_IMAGE_POSTS_TABLE + "( " + COLUMN_IMAGE_POSTS_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + COLUMN_IMAGE_POSTS_USER_ID + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_LATITUDE + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_LONGITUDE + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_IMAGE + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_IMAGE_THUMB + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_ADDRESS + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_MESSAGE + " TEXT, " + COLUMN_IMAGE_POSTS_DATE + " DATETIME DEFAULT (datetime('now','localtime')))";
 
     private Context mContext;
 

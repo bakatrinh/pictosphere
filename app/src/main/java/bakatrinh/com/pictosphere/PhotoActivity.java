@@ -2,6 +2,8 @@ package bakatrinh.com.pictosphere;
 
 import android.Manifest;
 import android.content.ContentValues;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
@@ -23,15 +25,20 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -67,12 +74,15 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
     private PictosphereStorageObserver pictosphereStorageObserver;
     ListDataAdapter mListDataAdapter;
     int mListImageWidth;
+    Context mContext;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_photo);
+
+        mContext = this;
 
         mImagesContainer = new ArrayList<>();
         mListDataAdapter = new ListDataAdapter();
@@ -268,6 +278,114 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         return image;
     }
 
+    public void editImage(int position) {
+        final ArrayList<String> imageData = mImagesContainer.get(position);
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+
+        final EditText message = new EditText(this);
+        message.setHint("Enter a note about this image");
+        message.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_AUTO_CORRECT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        message.setText(imageData.get(7));
+
+        LinearLayout layout2 = new LinearLayout(this);
+        layout2.setOrientation(LinearLayout.HORIZONTAL);
+
+        LinearLayout layout3 = new LinearLayout(this);
+        layout3.setOrientation(LinearLayout.HORIZONTAL);
+
+        LinearLayout layout4 = new LinearLayout(this);
+        layout4.setOrientation(LinearLayout.HORIZONTAL);
+
+        layout.addView(message);
+        layout.addView(layout2);
+        layout.addView(layout3);
+        layout.addView(layout4);
+
+        final EditText latitude = new EditText(this);
+        latitude.setHint("Latitude");
+        latitude.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_CLASS_NUMBER | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        latitude.setText(imageData.get(2));
+
+        final TextView textView1 = new TextView(this);
+        textView1.setText("Latitude: ");
+
+        layout2.addView(textView1);
+        layout2.addView(latitude);
+
+        final EditText longitude = new EditText(this);
+        longitude.setHint("Longitude");
+        longitude.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_CLASS_NUMBER | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        longitude.setText(imageData.get(3));
+
+        final TextView textView2 = new TextView(this);
+        textView2.setText("Longitude: ");
+
+        layout3.addView(textView2);
+        layout3.addView(longitude);
+
+        final Button clearButton = new Button(this);
+        clearButton.setText("Clear Coordinates");
+        clearButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                longitude.setText("");
+                latitude.setText("");
+            }
+        });
+
+        layout4.addView(clearButton);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Enter Info About This Image")
+                .setView(layout)
+                .setPositiveButton("Submit", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                    }
+                });
+
+        final AlertDialog dialog = builder.create();
+        dialog.show();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (longitude.getText().toString().isEmpty() || latitude.getText().toString().isEmpty()) {
+                    Toast.makeText(mContext, "Longitude and Latitude cannot be empty", Toast.LENGTH_LONG).show();
+                } else {
+                    String newMessage = message.getText().toString().trim();
+                    double latitudeNumber = Double.parseDouble(latitude.getText().toString());
+                    double longitudeNumber = Double.parseDouble(longitude.getText().toString());
+                    ContentValues contentValues = new ContentValues();
+
+                    if (Math.abs(Math.abs(Double.parseDouble(imageData.get(2))) - Math.abs(latitudeNumber)) > 0.5 || Math.abs(Math.abs(Double.parseDouble(imageData.get(3))) - Math.abs(longitudeNumber)) > 0.5 || imageData.get(6).isEmpty() || imageData.get(6).length() <= 0) {
+                        String newGeoCode = "";
+                        try {
+                            newGeoCode = getAddressGeoCoder(latitudeNumber, longitudeNumber);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        if (!newGeoCode.isEmpty() && newGeoCode.length() > 0) {
+                            contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_ADDRESS, newGeoCode);
+                        }
+                    }
+
+                    contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_MESSAGE, newMessage);
+                    contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_LATITUDE, Double.toString(latitudeNumber));
+                    contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_LONGITUDE, Double.toString(longitudeNumber));
+                    String whereClause = PictosphereStorage.COLUMN_IMAGE_POSTS_ID + "=?";
+                    String[] whereArgs = {imageData.get(0)};
+                    getContentResolver().update(PictosphereStorage.URI_IMAGE_POST, contentValues, whereClause, whereArgs);
+                    dialog.dismiss();
+                }
+            }
+        });
+    }
+
     public void startCameraActivity() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
@@ -307,8 +425,8 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
                 double latitude = 0;
                 LatLng tempLatLong = getCurrentLocation();
                 if (tempLatLong != null) {
-                    longitude = tempLatLong.longitude;
                     latitude = tempLatLong.latitude;
+                    longitude = tempLatLong.longitude;
                     try {
                         address = getAddressGeoCoder(latitude, longitude);
                     } catch (IOException e) {
@@ -336,8 +454,8 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
 
                 ContentValues contentValues = new ContentValues();
                 contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_USER_ID, mGoogleEmail);
-                contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_LONGITUDE, Double.toString(longitude));
                 contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_LATITUDE, Double.toString(latitude));
+                contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_LONGITUDE, Double.toString(longitude));
                 contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_IMAGE, mCurrentPhotoPath);
                 contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_IMAGE_THUMB, getmCurrentPhotoPathThumb);
                 contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_ADDRESS, address);
@@ -374,11 +492,7 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
                         temp.add(c1.getString(9));
                         temp.add(c1.getString(10));
 
-                        try {
-                            arrayAdapterString = getAdapterTextString(temp);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                        arrayAdapterString = getAdapterTextString(temp);
                         temp.add(arrayAdapterString);
 
                         tempImagesContainer.add(temp);
@@ -392,15 +506,29 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         new Thread(imageArrayTask).start();
     }
 
-    public void deleteAPicture(String id, String filepath, String filepaththumb) {
-        String whereClause = PictosphereStorage.COLUMN_IMAGE_POSTS_ID + "=?";
-        String[] whereArgs = {id};
-        getContentResolver().delete(PictosphereStorage.URI_IMAGE_POST, whereClause, whereArgs);
-        File file = new File(filepath);
-        File filethumb = new File(filepaththumb);
-        if (file.delete() && filethumb.delete()) {
-            Toast.makeText(this, "File Deleted", Toast.LENGTH_LONG).show();
-        }
+    public void deleteAPicture(final String id, final String filepath, final String filepaththumb) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Delete?")
+                .setMessage("Are you sure you want to delete this image?")
+                .setPositiveButton("Submit", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        String whereClause = PictosphereStorage.COLUMN_IMAGE_POSTS_ID + "=?";
+                        String[] whereArgs = {id};
+                        getContentResolver().delete(PictosphereStorage.URI_IMAGE_POST, whereClause, whereArgs);
+                        File file = new File(filepath);
+                        File filethumb = new File(filepaththumb);
+                        if (file.delete() && filethumb.delete()) {
+                            Toast.makeText(mContext, "Image Deleted", Toast.LENGTH_LONG).show();
+                        }
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                    }
+                });
+
+        final AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     public void imageInfo(int position) {
@@ -431,7 +559,7 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
 
         if (geocoder != null) {
             addresses = geocoder.getFromLocation(latitude, longitude, 1);
-            if (addresses != null) {
+            if (addresses != null && addresses.size() > 0) {
                 String address = addresses.get(0).getAddressLine(0);
                 String city = addresses.get(0).getLocality();
                 String state = addresses.get(0).getAdminArea();
@@ -439,16 +567,16 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
                 String postalCode = addresses.get(0).getPostalCode();
                 String knownName = addresses.get(0).getFeatureName();
 
-                if (!city.isEmpty()) {
+                if (city != null && !city.isEmpty()) {
                     returnString += city;
                 }
-                if (!state.isEmpty()) {
+                if (state != null && !state.isEmpty()) {
                     if (!returnString.isEmpty() && returnString.length() > 0) {
                         returnString += ", ";
                     }
                     returnString += state;
                 }
-                if (!country.isEmpty()) {
+                if (country != null && !country.isEmpty()) {
                     if (!returnString.isEmpty() && returnString.length() > 0) {
                         returnString += ", ";
                     }
@@ -459,17 +587,21 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         return returnString;
     }
 
-    public String getAdapterTextString(ArrayList<String> imageItem) throws IOException {
+    public String getAdapterTextString(ArrayList<String> imageItem) {
         String returnString = "";
         if (!imageItem.get(6).isEmpty() && imageItem.get(6).length() > 0) {
             returnString += imageItem.get(6) + "\n";
         } else {
-            double longitude = Double.parseDouble(imageItem.get(2));
-            double latitude = Double.parseDouble(imageItem.get(3));
-            String newGeoCode = getAddressGeoCoder(latitude, longitude);
+            double latitude = Double.parseDouble(imageItem.get(2));
+            double longitude = Double.parseDouble(imageItem.get(3));
+            String newGeoCode = "";
+            try {
+                newGeoCode = getAddressGeoCoder(latitude, longitude);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             if (!newGeoCode.isEmpty() && newGeoCode.length() > 0) {
                 returnString += newGeoCode + "\n";
-                Log.d(MainActivity.TAG, "new geocode: " + newGeoCode);
                 ContentValues contentValues = new ContentValues();
                 contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_ADDRESS, newGeoCode);
                 String whereClause = PictosphereStorage.COLUMN_IMAGE_POSTS_ID + "=?";

@@ -23,7 +23,7 @@
                 android:layout_height="wrap_content"
                 android:padding="10dp"
                 android:text="Your Images:"
-                android:textSize="22sp"/>
+                android:textSize="20sp"/>
         </LinearLayout>
 
         <View
