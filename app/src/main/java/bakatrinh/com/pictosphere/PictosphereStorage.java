@@ -14,10 +14,11 @@ import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
 import android.content.ContentUris;
+
 import java.util.HashMap;
 
 public class PictosphereStorage extends ContentProvider {
-    private static final int DB_VERSION = 3;
+    private static final int DB_VERSION = 5;
     private static HashMap<String, String> DEVICES_PROJECT_MAP;
     private static SQLiteDatabase db;
     private PictosphereStorageHelper mOpenHelper;
@@ -35,10 +36,12 @@ public class PictosphereStorage extends ContentProvider {
     static final String COLUMN_IMAGE_POSTS_LONGITUDE = "longitude";
     static final String COLUMN_IMAGE_POSTS_LATITUDE = "latitude";
     static final String COLUMN_IMAGE_POSTS_IMAGE = "image_path";
+    static final String COLUMN_IMAGE_POSTS_IMAGE_THUMB = "image_path_thumb";
     static final String COLUMN_IMAGE_POSTS_ADDRESS = "address";
+    static final String COLUMN_IMAGE_POSTS_MESSAGE = "message";
     static final String COLUMN_IMAGE_POSTS_DATE = "date_created";
 
-    private static final String CREATE_DB_TABLE = "CREATE TABLE " + PICTOSPHERE_IMAGE_POSTS_TABLE + "( "+COLUMN_IMAGE_POSTS_ID+" INTEGER PRIMARY KEY AUTOINCREMENT, "+COLUMN_IMAGE_POSTS_USER_ID+" TEXT NOT NULL, "+COLUMN_IMAGE_POSTS_LONGITUDE+" TEXT NOT NULL, "+COLUMN_IMAGE_POSTS_LATITUDE+" TEXT NOT NULL, "+COLUMN_IMAGE_POSTS_IMAGE+" TEXT NOT NULL, "+COLUMN_IMAGE_POSTS_ADDRESS+" TEXT NOT NULL, "+COLUMN_IMAGE_POSTS_DATE+" DATETIME DEFAULT (datetime('now','localtime')))";
+    private static final String CREATE_DB_TABLE = "CREATE TABLE " + PICTOSPHERE_IMAGE_POSTS_TABLE + "( " + COLUMN_IMAGE_POSTS_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " + COLUMN_IMAGE_POSTS_USER_ID + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_LONGITUDE + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_LATITUDE + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_IMAGE + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_IMAGE_THUMB + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_ADDRESS + " TEXT NOT NULL, " + COLUMN_IMAGE_POSTS_MESSAGE + " TEXT, " + COLUMN_IMAGE_POSTS_DATE + " DATETIME DEFAULT (datetime('now','localtime')))";
 
     private Context mContext;
 
@@ -117,8 +120,20 @@ public class PictosphereStorage extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues values, String selection,
                       String[] selectionArgs) {
-        // TODO: Implement this to handle requests to update one or more rows.
-        throw new UnsupportedOperationException("Not yet implemented");
+        int count = 0;
+        db = mOpenHelper.getWritableDatabase();
+        switch (sUriMatcher.match(uri)) {
+            case 1:
+                count = db.update(PICTOSPHERE_IMAGE_POSTS_TABLE, values, selection, selectionArgs);
+                break;
+
+            case 2:
+                count = db.update(PICTOSPHERE_IMAGE_POSTS_TABLE, values, selection, selectionArgs);
+                break;
+        }
+        notifyChange(uri);
+        return count;
+        //throw new UnsupportedOperationException("Not yet implemented");
     }
 
     private void notifyChange(Uri uri) {

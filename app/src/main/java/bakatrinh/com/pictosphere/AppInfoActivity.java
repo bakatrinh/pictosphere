@@ -52,12 +52,27 @@ public class AppInfoActivity extends AppCompatActivity {
     }
 
     public void deleteRecursive(File fileOrDirectory) {
-
         if (fileOrDirectory.isDirectory()) {
             for (File child : fileOrDirectory.listFiles()) {
                 deleteRecursive(child);
             }
         }
         fileOrDirectory.delete();
+    }
+
+    public void listOutFiles(View v) {
+        String path = Environment.getExternalStorageDirectory().toString() + PhotoActivity.internalPhotoPath;
+        File folder = new File(path);
+        File[] listOfFiles = folder.listFiles();
+
+        if (listOfFiles != null) {
+            for (File f : listOfFiles) {
+                if (f.isFile()) {
+                    Log.d(MainActivity.TAG, "File " + f.getName());
+                } else if (f.isDirectory()) {
+                    Log.d(MainActivity.TAG, "Directory " + f.getName());
+                }
+            }
+        }
     }
 }

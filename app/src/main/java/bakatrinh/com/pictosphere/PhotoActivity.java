@@ -25,16 +25,24 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.model.LatLng;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -53,8 +61,12 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
     FrameLayout fragmentContainerPortrait;
     FrameLayout fragmentContainerLandscape;
     String mCurrentPhotoPath;
+    String getmCurrentPhotoPathThumb;
     String mGoogleEmail;
+    ArrayList<ArrayList<String>> mImagesContainer;
     private PictosphereStorageObserver pictosphereStorageObserver;
+    ListDataAdapter mListDataAdapter;
+    int mListImageWidth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,7 +74,10 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
 
         setContentView(R.layout.activity_photo);
 
-        mGoogleEmail = getIntent().getStringExtra(MainActivity.GOOGLEEMAIL);
+        mImagesContainer = new ArrayList<>();
+        mListDataAdapter = new ListDataAdapter();
+
+        mGoogleEmail = getIntent().getStringExtra(MainActivity.BUNDLE_GOOGLE_EMAIL);
 
         fragmentContainerPortrait = findViewById(R.id.main_fragment_container_portrait);
         fragmentContainerLandscape = findViewById(R.id.main_fragment_container_landscape);
@@ -81,6 +96,7 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
             fragmentContainerLandscape.setVisibility(View.VISIBLE);
         }
         pictosphereStorageObserver = new PictosphereStorageObserver(new Handler());
+        mListImageWidth = dpToPx(80);
     }
 
     @Override
@@ -139,15 +155,26 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
 
     LatLng getCurrentLocation() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            LocationManager locationManager = (LocationManager) this.getSystemService(PhotoActivity.LOCATION_SERVICE);
+            LocationManager locationManager = (LocationManager) getSystemService(MainActivity.LOCATION_SERVICE);
             Criteria criteria = new Criteria();
             criteria.setAccuracy(Criteria.ACCURACY_FINE);
             criteria.setPowerRequirement(Criteria.POWER_LOW);
-            String locationProvider = locationManager.getBestProvider(criteria, true);
-            Location location = locationManager.getLastKnownLocation(locationProvider);
-            double latitude = location.getLatitude();
-            double longitude = location.getLongitude();
-            return new LatLng(latitude, longitude);
+            List<String> providers = locationManager.getProviders(true);
+            Location bestLocation = null;
+            for (String provider : providers) {
+                Location l = locationManager.getLastKnownLocation(provider);
+                if (l == null) {
+                    continue;
+                }
+                if (bestLocation == null || l.getAccuracy() < bestLocation.getAccuracy()) {
+                    bestLocation = l;
+                }
+            }
+            if (bestLocation != null) {
+                double latitude = bestLocation.getLatitude();
+                double longitude = bestLocation.getLongitude();
+                return new LatLng(latitude, longitude);
+            }
         }
         return null;
     }
@@ -192,8 +219,7 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
 
         @Override
         public void onChange(boolean selfChange, Uri uri) {
-            Message msg = fragmentPortrait.mHandler.obtainMessage(PhotoActivity.UPDATE_IMAGES);
-            fragmentPortrait.mHandler.sendMessage(msg);
+            rebuildImagesArray();
         }
     }
 
@@ -226,6 +252,22 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         return image;
     }
 
+    private File createImageFileThumb() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                "_thumb.jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+
+        // Save a file: path for use with ACTION_VIEW intents
+        getmCurrentPhotoPathThumb = image.getAbsolutePath();
+        return image;
+    }
+
     public void startCameraActivity() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
@@ -252,47 +294,119 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK && requestCode == PICK_USER_PROFILE_IMAGE) {
-            File f = new File(mCurrentPhotoPath);
-            Uri contentUri = Uri.fromFile(f);
-
-            String address = "";
-            double longitude = 0;
-            double latitude = 0;
-            LatLng tempLatLong = getCurrentLocation();
-            if (tempLatLong != null) {
-                longitude = tempLatLong.longitude;
-                latitude = tempLatLong.latitude;
-                try {
-                    address = getAddressGeoCoder(latitude, longitude);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            ContentValues contentValues = new ContentValues();
-            contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_USER_ID, mGoogleEmail);
-            contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_LONGITUDE, Double.toString(longitude));
-            contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_LATITUDE, Double.toString(latitude));
-            contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_IMAGE, contentUri.toString());
-            contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_ADDRESS, address);
-            getContentResolver().insert(PictosphereStorage.URI_IMAGE_POST, contentValues);
+            insertNewImage();
         }
     }
 
-    public void testQuery(View v) {
-        Cursor c1 = getContentResolver().query(PictosphereStorage.URI_IMAGE_POST, null, null, null, null);
-        if (c1 != null && c1.isBeforeFirst()) {
-            while (c1.moveToNext()) {
-                Log.d(MainActivity.TAG, c1.getString(0));
-                Log.d(MainActivity.TAG, c1.getString(1));
-                Log.d(MainActivity.TAG, c1.getString(2));
-                Log.d(MainActivity.TAG, c1.getString(3));
-                Log.d(MainActivity.TAG, c1.getString(4));
-                Log.d(MainActivity.TAG, c1.getString(5));
-                Log.d(MainActivity.TAG, c1.getString(6));
-                Log.d(MainActivity.TAG, "---------------------");
+    public void insertNewImage() {
+        Runnable insertNewImageTask = new Runnable() {
+            @Override
+            public void run() {
+                String address = "";
+                double longitude = 0;
+                double latitude = 0;
+                LatLng tempLatLong = getCurrentLocation();
+                if (tempLatLong != null) {
+                    longitude = tempLatLong.longitude;
+                    latitude = tempLatLong.latitude;
+                    try {
+                        address = getAddressGeoCoder(latitude, longitude);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                File photoFileThumb = null;
+                try {
+                    photoFileThumb = createImageFileThumb();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+                if (photoFileThumb != null) {
+                    Bitmap bitmap = resizeImage(mCurrentPhotoPath, mListImageWidth, mListImageWidth);
+                    try {
+                        FileOutputStream out = new FileOutputStream(photoFileThumb);
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+                        out.flush();
+                        out.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_USER_ID, mGoogleEmail);
+                contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_LONGITUDE, Double.toString(longitude));
+                contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_LATITUDE, Double.toString(latitude));
+                contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_IMAGE, mCurrentPhotoPath);
+                contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_IMAGE_THUMB, getmCurrentPhotoPathThumb);
+                contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_ADDRESS, address);
+                contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_MESSAGE, "");
+                getContentResolver().insert(PictosphereStorage.URI_IMAGE_POST, contentValues);
             }
+        };
+        new Thread(insertNewImageTask).start();
+    }
+
+    public void rebuildImagesArray() {
+        final Runnable imageArrayTask = new Runnable() {
+            @Override
+            public void run() {
+                ArrayList<ArrayList<String>> tempImagesContainer = new ArrayList<>();
+                String[] projection = {"*", "case strftime('%m', " + PictosphereStorage.COLUMN_IMAGE_POSTS_DATE + ") when '01' then 'January' when '02' then 'Febuary' when '03' then 'March' when '04' then 'April' when '05' then 'May' when '06' then 'June' when '07' then 'July' when '08' then 'August' when '09' then 'September' when '10' then 'October' when '11' then 'November' when '12' then 'December' else '' end as calendar_month", "strftime('%d, %Y', " + PictosphereStorage.COLUMN_IMAGE_POSTS_DATE + ") as formatted_date"};
+                String whereClause = PictosphereStorage.COLUMN_IMAGE_POSTS_USER_ID + "=?";
+                String[] whereArgs = {mGoogleEmail};
+                Cursor c1 = getContentResolver().query(PictosphereStorage.URI_IMAGE_POST, projection, whereClause, whereArgs, null);
+                if (c1 != null && c1.isBeforeFirst()) {
+                    while (c1.moveToNext()) {
+                        String arrayAdapterString = "";
+
+                        ArrayList<String> temp = new ArrayList<>();
+                        temp.add(c1.getString(0));
+                        temp.add(c1.getString(1));
+                        temp.add(c1.getString(2));
+                        temp.add(c1.getString(3));
+                        temp.add(c1.getString(4));
+                        temp.add(c1.getString(5));
+                        temp.add(c1.getString(6));
+                        temp.add(c1.getString(7));
+                        temp.add(c1.getString(8));
+                        temp.add(c1.getString(9));
+                        temp.add(c1.getString(10));
+
+                        try {
+                            arrayAdapterString = getAdapterTextString(temp);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        temp.add(arrayAdapterString);
+
+                        tempImagesContainer.add(temp);
+                    }
+                }
+                mImagesContainer = tempImagesContainer;
+                Message msg = fragmentPortrait.mHandler.obtainMessage(PhotoActivity.UPDATE_IMAGES);
+                fragmentPortrait.mHandler.sendMessage(msg);
+            }
+        };
+        new Thread(imageArrayTask).start();
+    }
+
+    public void deleteAPicture(String id, String filepath, String filepaththumb) {
+        String whereClause = PictosphereStorage.COLUMN_IMAGE_POSTS_ID + "=?";
+        String[] whereArgs = {id};
+        getContentResolver().delete(PictosphereStorage.URI_IMAGE_POST, whereClause, whereArgs);
+        File file = new File(filepath);
+        File filethumb = new File(filepaththumb);
+        if (file.delete() && filethumb.delete()) {
+            Toast.makeText(this, "File Deleted", Toast.LENGTH_LONG).show();
         }
+    }
+
+    public void imageInfo(int position) {
+        Intent intent = new Intent(PhotoActivity.this, ImageInfoActivity.class);
+        intent.putExtra(MainActivity.BUNDLE_IMAGE_DATA, mImagesContainer.get(position));
+        startActivity(intent);
     }
 
     public void settings(View v) {
@@ -300,13 +414,11 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         startActivity(intent);
     }
 
-    public Bitmap getBitmapFromPath() {
-        if (mCurrentPhotoPath != null) {
-            File imgFile = new File(mCurrentPhotoPath);
-            if (imgFile.exists()) {
-                Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
-                return myBitmap;
-            }
+    public Bitmap getBitmapFromPath(String path) {
+        File imgFile = new File(path);
+        if (imgFile.exists()) {
+            Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+            return myBitmap;
         }
         return null;
     }
@@ -319,30 +431,53 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
 
         if (geocoder != null) {
             addresses = geocoder.getFromLocation(latitude, longitude, 1);
+            if (addresses != null) {
+                String address = addresses.get(0).getAddressLine(0);
+                String city = addresses.get(0).getLocality();
+                String state = addresses.get(0).getAdminArea();
+                String country = addresses.get(0).getCountryName();
+                String postalCode = addresses.get(0).getPostalCode();
+                String knownName = addresses.get(0).getFeatureName();
 
-            String address = addresses.get(0).getAddressLine(0);
-            String city = addresses.get(0).getLocality();
-            String state = addresses.get(0).getAdminArea();
-            String country = addresses.get(0).getCountryName();
-            String postalCode = addresses.get(0).getPostalCode();
-            String knownName = addresses.get(0).getFeatureName();
-
-            if (!city.isEmpty()) {
-                returnString += city;
-            }
-            if (!state.isEmpty()) {
-                if (!returnString.isEmpty() && returnString.length() > 0) {
-                    returnString += ", ";
+                if (!city.isEmpty()) {
+                    returnString += city;
                 }
-                returnString += state;
-            }
-            if (!country.isEmpty()) {
-                if (!returnString.isEmpty() && returnString.length() > 0) {
-                    returnString += ", ";
+                if (!state.isEmpty()) {
+                    if (!returnString.isEmpty() && returnString.length() > 0) {
+                        returnString += ", ";
+                    }
+                    returnString += state;
                 }
-                returnString += country;
+                if (!country.isEmpty()) {
+                    if (!returnString.isEmpty() && returnString.length() > 0) {
+                        returnString += ", ";
+                    }
+                    returnString += country;
+                }
             }
         }
+        return returnString;
+    }
+
+    public String getAdapterTextString(ArrayList<String> imageItem) throws IOException {
+        String returnString = "";
+        if (!imageItem.get(6).isEmpty() && imageItem.get(6).length() > 0) {
+            returnString += imageItem.get(6) + "\n";
+        } else {
+            double longitude = Double.parseDouble(imageItem.get(2));
+            double latitude = Double.parseDouble(imageItem.get(3));
+            String newGeoCode = getAddressGeoCoder(latitude, longitude);
+            if (!newGeoCode.isEmpty() && newGeoCode.length() > 0) {
+                returnString += newGeoCode + "\n";
+                Log.d(MainActivity.TAG, "new geocode: " + newGeoCode);
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(PictosphereStorage.COLUMN_IMAGE_POSTS_ADDRESS, newGeoCode);
+                String whereClause = PictosphereStorage.COLUMN_IMAGE_POSTS_ID + "=?";
+                String[] whereArgs = {imageItem.get(0)};
+                getContentResolver().update(PictosphereStorage.URI_IMAGE_POST, contentValues, whereClause, whereArgs);
+            }
+        }
+        returnString += imageItem.get(9) + " " + imageItem.get(10);
         return returnString;
     }
 
@@ -356,7 +491,7 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         int photoH = bmOptions.outHeight;
 
         // Determine how much to scale down the image
-        int scaleFactor = Math.min(photoW/targetW, photoH/targetH);
+        int scaleFactor = Math.min(photoW / targetW, photoH / targetH);
 
         // Decode the image file into a Bitmap sized to fill the View
         bmOptions.inJustDecodeBounds = false;
@@ -365,5 +500,63 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
 
         Bitmap bitmap = BitmapFactory.decodeFile(filePath, bmOptions);
         return bitmap;
+    }
+
+    public int dpToPx(int dp) {
+        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        return Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
+    }
+
+    class ListDataAdapter extends BaseAdapter {
+        ViewHolder holder;
+
+        @Override
+        public int getCount() {
+            return mImagesContainer.size();
+        }
+
+        @Override
+        public Object getItem(int i) {
+            return null;
+        }
+
+        @Override
+        public long getItemId(int i) {
+            return i;
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            // current menu type
+            //return position % 3;
+            return 1;
+        }
+
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            if (convertView == null) {
+                convertView = View.inflate(getApplicationContext(), R.layout.images_list_style, null);
+                holder = new ViewHolder(convertView);
+            }
+            holder = (ViewHolder) convertView.getTag();
+            Bitmap tempBitmap = getBitmapFromPath(mImagesContainer.get(position).get(5));
+            if (tempBitmap != null) {
+                holder.mImageview.setImageBitmap(tempBitmap);
+            }
+            holder.mTextview.setText(mImagesContainer.get(position).get(11));
+            return convertView;
+        }
+
+        class ViewHolder {
+            TextView mTextview;
+            ImageView mImageview;
+
+            public ViewHolder(View view) {
+                mImageview = view.findViewById(R.id.lblListImageItem);
+                mTextview = view.findViewById(R.id.lblListItem);
+                view.setTag(this);
+            }
+        }
     }
 }

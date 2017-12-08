@@ -6,7 +6,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Toast;
 
-import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -17,7 +16,8 @@ import com.google.android.gms.tasks.Task;
 public class MainActivity extends AppCompatActivity {
     static final int RC_SIGN_IN = 200;
     static final String TAG = "PICTOSPHERE_DEBUG";
-    static final String GOOGLEEMAIL = "google_email";
+    static final String BUNDLE_GOOGLE_EMAIL = "google_email";
+    static final String BUNDLE_IMAGE_DATA = "image_data";
     private String mGoogleEmail = "";
     GoogleSignInClient mGoogleSignInClient;
 
@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void login(View v) {
-        mGoogleSignInClient.signOut();
+        //mGoogleSignInClient.signOut();
         Intent signInIntent = mGoogleSignInClient.getSignInIntent();
         startActivityForResult(signInIntent, MainActivity.RC_SIGN_IN);
     }
@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
             account.getEmail();
             mGoogleEmail = account.getEmail();
             Intent intent = new Intent(MainActivity.this, PhotoActivity.class);
-            intent.putExtra(MainActivity.GOOGLEEMAIL, mGoogleEmail);
+            intent.putExtra(MainActivity.BUNDLE_GOOGLE_EMAIL, mGoogleEmail);
 
             startActivity(intent);
             finish();
