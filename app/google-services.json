@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "233479197358",
+    "project_id": "firebase-pictosphere"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:233479197358:android:e245ea88085f7348",
+        "android_client_info": {
+          "package_name": "bakatrinh.com.pictosphere"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "233479197358-ofg7tiq1h1veneq8to22dk37ikk49kb2.apps.googleusercontent.com",
+          "client_type": 3
+        },
+        {
+          "client_id": "233479197358-jjie46o7rp09if85cdtthj4o13pohuml.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "bakatrinh.com.pictosphere",
+            "certificate_hash": "07bab2b14d1ef1963e92902bda19d6bb8dea2a8c"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOFBU9fgLj3Tyl97FimgRw34K7ojGWxcw"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

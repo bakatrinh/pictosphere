@@ -4,6 +4,7 @@ package bakatrinh.com.pictosphere;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
@@ -16,9 +17,12 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -78,6 +82,16 @@ public class PhotoActivityFragmentPortrait extends Fragment {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
+                case PhotoActivity.UPDATE_IMAGES:
+                    Bitmap tempBitmap = mContext.resizeImage(mContext.mCurrentPhotoPath, 400, 400);
+                    if (tempBitmap != null) {
+                        ImageView tempImageView = getView().findViewById(R.id.test_image);
+                        tempImageView.setImageBitmap(mContext.getBitmapFromPath());
+                    }
+                    else {
+                        Toast.makeText(mContext, "Image does not exist at path", Toast.LENGTH_LONG).show();
+                    }
+                    break;
             }
         }
     }

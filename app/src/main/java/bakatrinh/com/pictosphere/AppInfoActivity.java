@@ -2,10 +2,14 @@ package bakatrinh.com.pictosphere;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.Environment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+
+import java.io.File;
 
 public class AppInfoActivity extends AppCompatActivity {
 
@@ -31,6 +35,11 @@ public class AppInfoActivity extends AppCompatActivity {
                 .setPositiveButton("Submit", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
                         getContentResolver().delete(PictosphereStorage.URI_IMAGE_POST, null, null);
+                        String path = Environment.getExternalStorageDirectory().toString() + PhotoActivity.internalPhotoPath;
+                        File folder = new File(path);
+                        if (folder != null) {
+                            deleteRecursive(folder);
+                        }
                     }
                 })
                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -40,5 +49,15 @@ public class AppInfoActivity extends AppCompatActivity {
 
         final AlertDialog dialog = builder.create();
         dialog.show();
+    }
+
+    public void deleteRecursive(File fileOrDirectory) {
+
+        if (fileOrDirectory.isDirectory()) {
+            for (File child : fileOrDirectory.listFiles()) {
+                deleteRecursive(child);
+            }
+        }
+        fileOrDirectory.delete();
     }
 }
