@@ -7,6 +7,15 @@
     android:layout_height="match_parent"
     tools:context="bakatrinh.com.pictosphere.MainActivity">
 
+    <android.support.v7.widget.Toolbar
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/colorPrimary"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -27,25 +36,19 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Pictosphere"
                 android:gravity="center"
+                android:text="Pictosphere"
                 android:textSize="50sp"/>
-        </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:layout_gravity="center"
-            android:orientation="horizontal">
-
-            <Button
-                android:layout_width="match_parent"
+            <com.google.android.gms.common.SignInButton
+                android:id="@+id/login_btn"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Login"
-                android:onClick="login"/>
+                android:layout_marginTop="25dp"
+                android:text="@string/common_signin_button_text_long"/>
         </LinearLayout>
+
+
     </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>

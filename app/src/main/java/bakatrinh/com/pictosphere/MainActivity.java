@@ -1,8 +1,12 @@
 package bakatrinh.com.pictosphere;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.Toast;
 
@@ -18,8 +22,12 @@ public class MainActivity extends AppCompatActivity {
     static final String TAG = "PICTOSPHERE_DEBUG";
     static final String BUNDLE_GOOGLE_EMAIL = "google_email";
     static final String BUNDLE_IMAGE_DATA = "image_data";
+    static final String BUNDLE_LATITUDE = "latitude";
+    static final String BUNDLE_LONGITUDE = "longitude";
+    static final String BUNDLE_FINISH_ACTIVITY = "finish_activity";
     private String mGoogleEmail = "";
     GoogleSignInClient mGoogleSignInClient;
+    BroadcastReceiver finishActivityReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,18 +35,45 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        findViewById(R.id.login_btn).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mGoogleSignInClient.signOut();
+                Intent signInIntent = mGoogleSignInClient.getSignInIntent();
+                startActivityForResult(signInIntent, MainActivity.RC_SIGN_IN);
+            }
+        });
+
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestEmail().build();
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
+
+        finishActivityReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context arg0, Intent intent) {
+                String action = intent.getAction();
+                if (action.equals(MainActivity.BUNDLE_FINISH_ACTIVITY)) {
+                    if (mGoogleSignInClient != null) {
+                        mGoogleSignInClient.signOut();
+                    }
+                    finish();
+                }
+            }
+        };
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        registerReceiver(finishActivityReceiver, new IntentFilter(MainActivity.BUNDLE_FINISH_ACTIVITY));
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        unregisterReceiver(finishActivityReceiver);
     }
 
     @Override
@@ -59,12 +94,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         moveTaskToBack(true);
-    }
-
-    public void login(View v) {
-        mGoogleSignInClient.signOut();
-        Intent signInIntent = mGoogleSignInClient.getSignInIntent();
-        startActivityForResult(signInIntent, MainActivity.RC_SIGN_IN);
     }
 
     @Override

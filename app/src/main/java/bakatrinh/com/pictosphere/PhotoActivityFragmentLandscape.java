@@ -143,10 +143,14 @@ public class PhotoActivityFragmentLandscape extends Fragment implements GoogleMa
                         int i = 0;
                         for (ArrayList<String> imageData : mContext.mImagesContainer) {
                             LatLng tempLatLong = new LatLng(Double.parseDouble(imageData.get(2)), Double.parseDouble(imageData.get(3)));
+                            String snippet = imageData.get(9) + " " + imageData.get(10);
+                            if (!imageData.get(7).isEmpty()) {
+                                snippet += "\n" + imageData.get(7);
+                            }
                             Marker marker = mMap.addMarker(new MarkerOptions()
                                                                    .position(tempLatLong)
                                                                    .title(imageData.get(6))
-                                                                   .snippet(imageData.get(9) + " " + imageData.get(10))
+                                                                   .snippet(snippet)
                                                                    .icon(BitmapDescriptorFactory.defaultMarker(i * 360 / mContext.mImagesContainer.size())));
                             marker.setTag(i);
                             i++;
@@ -164,10 +168,14 @@ public class PhotoActivityFragmentLandscape extends Fragment implements GoogleMa
                         int i = 0;
                         for (ArrayList<String> imageData : mContext.mImagesContainer) {
                             LatLng tempLatLong = new LatLng(Double.parseDouble(imageData.get(2)), Double.parseDouble(imageData.get(3)));
+                            String snippet = imageData.get(9) + " " + imageData.get(10);
+                            if (!imageData.get(7).isEmpty()) {
+                                snippet += "\n" + imageData.get(7);
+                            }
                             Marker marker = mMap.addMarker(new MarkerOptions()
                                                                    .position(tempLatLong)
                                                                    .title(imageData.get(6))
-                                                                   .snippet(imageData.get(9) + " " + imageData.get(10))
+                                                                   .snippet(snippet)
                                                                    .icon(BitmapDescriptorFactory.defaultMarker(i * 360 / mContext.mImagesContainer.size())));
                             marker.setTag(i);
                             i++;

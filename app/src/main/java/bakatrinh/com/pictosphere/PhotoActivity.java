@@ -1,10 +1,12 @@
 package bakatrinh.com.pictosphere;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.database.ContentObserver;
@@ -28,9 +30,12 @@ import android.support.v4.content.FileProvider;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.text.InputType;
 import android.util.DisplayMetrics;
-import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -45,7 +50,6 @@ import android.widget.Toast;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -55,8 +59,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class PhotoActivity extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback {
-    public static final int PICK_USER_PROFILE_IMAGE = 1000;
-
+    static final int PICK_USER_PROFILE_IMAGE = 1000;
     static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     static final int MY_CAMERA_REQUEST_CODE = 100;
     static final String internalPhotoPath = "/Android/data/bakatrinh.com.pictosphere/files/Pictures";
@@ -77,12 +80,16 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
     ListDataAdapter mListDataAdapter;
     int mListImageWidth;
     Context mContext;
+    BroadcastReceiver finishActivityReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_photo);
+
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
         mContext = this;
 
@@ -109,17 +116,70 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         }
         pictosphereStorageObserver = new PictosphereStorageObserver(new Handler());
         mListImageWidth = dpToPx(80);
+
+        finishActivityReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context arg0, Intent intent) {
+                String action = intent.getAction();
+                if (action.equals(MainActivity.BUNDLE_FINISH_ACTIVITY)) {
+                    finish();
+                }
+            }
+        };
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.pictosphere_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        Intent intent;
+        switch (item.getItemId()) {
+            case R.id.action_settings:
+                double tempLatitude = 0.0;
+                double tempLongitude = 0.0;
+                LatLng temp = getCurrentLocation();
+                if (temp != null) {
+                    tempLatitude = temp.latitude;
+                    tempLongitude = temp.longitude;
+                }
+                intent = new Intent(PhotoActivity.this, AppInfoActivity.class);
+                intent.putExtra(MainActivity.BUNDLE_LATITUDE, tempLatitude);
+                intent.putExtra(MainActivity.BUNDLE_LONGITUDE, tempLongitude);
+                startActivity(intent);
+                return true;
+
+            case R.id.action_log_off:
+                Intent closeActivitySignal = new Intent(MainActivity.BUNDLE_FINISH_ACTIVITY);
+                sendBroadcast(closeActivitySignal);
+
+                intent = new Intent(PhotoActivity.this, MainActivity.class);
+                startActivity(intent);
+                finish();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         getContentResolver().registerContentObserver(PictosphereStorage.URI_IMAGE_POST, true, pictosphereStorageObserver);
+        registerReceiver(finishActivityReceiver, new IntentFilter(MainActivity.BUNDLE_FINISH_ACTIVITY));
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        getContentResolver().unregisterContentObserver(pictosphereStorageObserver);
+        unregisterReceiver(finishActivityReceiver);
     }
 
     @Override
@@ -287,6 +347,9 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
 
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
+        float scale = getResources().getDisplayMetrics().density;
+        int dpAsPixels = (int) (10 * scale + 0.5f);
+        layout.setPadding(dpAsPixels, dpAsPixels, dpAsPixels, dpAsPixels);
 
         final EditText message = new EditText(this);
         message.setHint("Enter a note about this image");
@@ -550,11 +613,6 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         startActivity(intent);
     }
 
-    public void settings(View v) {
-        Intent intent = new Intent(PhotoActivity.this, AppInfoActivity.class);
-        startActivity(intent);
-    }
-
     public static Bitmap getBitmapFromPath(String path) {
         File imgFile = new File(path);
         if (imgFile.exists()) {
@@ -676,7 +734,6 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
             //return position % 3;
             return 1;
         }
-
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {

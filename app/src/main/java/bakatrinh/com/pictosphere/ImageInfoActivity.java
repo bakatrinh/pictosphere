@@ -1,21 +1,34 @@
 package bakatrinh.com.pictosphere;
 
-import android.content.DialogInterface;
+import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v7.app.AlertDialog;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.model.LatLng;
+
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 
 public class ImageInfoActivity extends AppCompatActivity {
     static final int UPDATE_DATA = 1;
@@ -32,15 +45,82 @@ public class ImageInfoActivity extends AppCompatActivity {
     int imageViewWidth;
     int imageViewHeight;
     ArrayList<String> imageData;
+    BroadcastReceiver finishActivityReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image_info);
+
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
         imageView = findViewById(R.id.image_bitmap);
         mHandler = new UIHandler();
         imageBitmap = null;
         imageData = (ArrayList<String>) getIntent().getSerializableExtra(MainActivity.BUNDLE_IMAGE_DATA);
+
+        finishActivityReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context arg0, Intent intent) {
+                String action = intent.getAction();
+                if (action.equals(MainActivity.BUNDLE_FINISH_ACTIVITY)) {
+                    finish();
+                }
+            }
+        };
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(finishActivityReceiver, new IntentFilter(MainActivity.BUNDLE_FINISH_ACTIVITY));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(finishActivityReceiver);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.pictosphere_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        Intent intent;
+        switch (item.getItemId()) {
+            case R.id.action_settings:
+                double tempLatitude = 0.0;
+                double tempLongitude = 0.0;
+                LatLng temp = getCurrentLocation();
+                if (temp != null) {
+                    tempLatitude = temp.latitude;
+                    tempLongitude = temp.longitude;
+                }
+                intent = new Intent(ImageInfoActivity.this, AppInfoActivity.class);
+                intent.putExtra(MainActivity.BUNDLE_LATITUDE, tempLatitude);
+                intent.putExtra(MainActivity.BUNDLE_LONGITUDE, tempLongitude);
+                startActivity(intent);
+                return true;
+
+            case R.id.action_log_off:
+                Intent closeActivitySignal = new Intent(MainActivity.BUNDLE_FINISH_ACTIVITY);
+                sendBroadcast(closeActivitySignal);
+
+                intent = new Intent(ImageInfoActivity.this, MainActivity.class);
+                startActivity(intent);
+                finish();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+
+        }
     }
 
     @Override
@@ -79,6 +159,32 @@ public class ImageInfoActivity extends AppCompatActivity {
         this.finish();
     }
 
+    LatLng getCurrentLocation() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            LocationManager locationManager = (LocationManager) getSystemService(MainActivity.LOCATION_SERVICE);
+            Criteria criteria = new Criteria();
+            criteria.setAccuracy(Criteria.ACCURACY_FINE);
+            criteria.setPowerRequirement(Criteria.POWER_LOW);
+            List<String> providers = locationManager.getProviders(true);
+            Location bestLocation = null;
+            for (String provider : providers) {
+                Location l = locationManager.getLastKnownLocation(provider);
+                if (l == null) {
+                    continue;
+                }
+                if (bestLocation == null || l.getAccuracy() < bestLocation.getAccuracy()) {
+                    bestLocation = l;
+                }
+            }
+            if (bestLocation != null) {
+                double latitude = bestLocation.getLatitude();
+                double longitude = bestLocation.getLongitude();
+                return new LatLng(latitude, longitude);
+            }
+        }
+        return null;
+    }
+
     public void goBack(View view) {
         finish();
     }
@@ -110,8 +216,7 @@ public class ImageInfoActivity extends AppCompatActivity {
                     if (message.isEmpty() || message.length() <= 0) {
                         textView.setVisibility(View.GONE);
                         divider.setVisibility(View.GONE);
-                    }
-                    else {
+                    } else {
                         textView.setText(message);
                         textView.setVisibility(View.VISIBLE);
                         divider.setVisibility(View.VISIBLE);
