@@ -62,6 +62,8 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
     static final String internalPhotoPath = "/Android/data/bakatrinh.com.pictosphere/files/Pictures";
 
     static final int UPDATE_IMAGES = 1;
+    static final int UPDATE_MAP = 1;
+    static final int UPDATE_MAP_INITIAL = 2;
     boolean mPermissionDenied;
     PhotoActivityFragmentPortrait fragmentPortrait;
     PhotoActivityFragmentLandscape fragmentLandscape;
@@ -133,6 +135,7 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+        rebuildImagesArray();
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
             fragmentContainerLandscape.setVisibility(View.GONE);
             fragmentContainerPortrait.setVisibility(View.VISIBLE);
@@ -157,6 +160,7 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
             // Permission to access the location is missing.
             PermissionUtils.requestPermission(this, PhotoActivity.LOCATION_PERMISSION_REQUEST_CODE, Manifest.permission.ACCESS_FINE_LOCATION, true);
         } else if (fragmentLandscape.mMap != null) {
+            fragmentLandscape.setCurrentLocation(getCurrentLocation());
             // Access to the location has been granted to the app.
             fragmentLandscape.mMap.setMyLocationEnabled(true);
             fragmentLandscape.redrawGoogleMaps();
@@ -499,8 +503,17 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
                     }
                 }
                 mImagesContainer = tempImagesContainer;
-                Message msg = fragmentPortrait.mHandler.obtainMessage(PhotoActivity.UPDATE_IMAGES);
-                fragmentPortrait.mHandler.sendMessage(msg);
+                if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+                    if (fragmentPortrait.mHandler != null) {
+                        Message msg = fragmentPortrait.mHandler.obtainMessage(PhotoActivity.UPDATE_IMAGES);
+                        fragmentPortrait.mHandler.sendMessage(msg);
+                    }
+                } else {
+                    if (fragmentLandscape.mHandler != null) {
+                        Message msg2 = fragmentLandscape.mHandler.obtainMessage(PhotoActivity.UPDATE_MAP);
+                        fragmentLandscape.mHandler.sendMessage(msg2);
+                    }
+                }
             }
         };
         new Thread(imageArrayTask).start();
@@ -542,7 +555,7 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         startActivity(intent);
     }
 
-    public Bitmap getBitmapFromPath(String path) {
+    public static Bitmap getBitmapFromPath(String path) {
         File imgFile = new File(path);
         if (imgFile.exists()) {
             Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
