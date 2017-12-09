@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void login(View v) {
-        //mGoogleSignInClient.signOut();
+        mGoogleSignInClient.signOut();
         Intent signInIntent = mGoogleSignInClient.getSignInIntent();
         startActivityForResult(signInIntent, MainActivity.RC_SIGN_IN);
     }
