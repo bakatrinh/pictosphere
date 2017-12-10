@@ -111,14 +111,23 @@ public class PhotoActivityFragmentLandscape extends Fragment implements GoogleMa
         mMap.setOnMyLocationButtonClickListener(this);
         mMap.setOnMyLocationClickListener(this);
         mMap.setOnCameraMoveStartedListener(this);
+        mMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+            @Override
+            public void onInfoWindowClick(Marker marker) {
+                final int marker_id = (int) marker.getTag();
+                mContext.imageInfo(marker_id);
+            }
+        });
         mContext.enableMyLocation();
     }
 
     @Override
     public boolean onMyLocationButtonClick() {
-        //Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show();
-        // Return false so that we don't consume the event and the default behavior still occurs
-        // (the camera animates to the user's current position).
+        if (mCurrentLocation != null) {
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(mCurrentLocation));
+            mMap.animateCamera(CameraUpdateFactory.zoomTo(4));
+            return true;
+        }
         return false;
     }
 
@@ -211,7 +220,7 @@ public class PhotoActivityFragmentLandscape extends Fragment implements GoogleMa
         }
 
         private void render(Marker marker, View view) {
-            int marker_id = (int) marker.getTag();
+            final int marker_id = (int) marker.getTag();
 
             Bitmap tempBitmap = PhotoActivity.getBitmapFromPath(mContext.mImagesContainer.get(marker_id).get(5));
             if (tempBitmap != null) {
@@ -233,9 +242,16 @@ public class PhotoActivityFragmentLandscape extends Fragment implements GoogleMa
             String snippet = marker.getSnippet();
             TextView snippetUi = view.findViewById(R.id.snippet);
             if (snippet != null && snippet.length() > 0) {
-                SpannableString snippetText = new SpannableString(snippet);
-                snippetText.setSpan(new ForegroundColorSpan(Color.BLUE), 0, snippet.length(), 0);
+                String[] snippetArray = marker.getSnippet().split("\n");
+                SpannableString snippetText = new SpannableString(snippetArray[0]);
+                snippetText.setSpan(new ForegroundColorSpan(Color.BLUE), 0, snippetArray[0].length(), 0);
                 snippetUi.setText(snippetText);
+                if (snippetArray.length == 2) {
+                    snippetUi.append("\n");
+                    SpannableString snippetText2 = new SpannableString(snippetArray[1]);
+                    snippetText2.setSpan(new ForegroundColorSpan(Color.BLACK), 0, snippetArray[1].length(), 0);
+                    snippetUi.append(snippetText2);
+                }
             } else {
                 snippetUi.setText("");
             }

@@ -73,13 +73,13 @@ public class PhotoActivityFragmentPortrait extends Fragment {
             public void create(SwipeMenu menu) {
                 SwipeMenuItem subtractItem = new SwipeMenuItem(getContext());
                 subtractItem.setBackground(new ColorDrawable(Color.parseColor("#d84329")));
-                subtractItem.setWidth(dp2px(40));
+                subtractItem.setWidth(dp2px(60));
                 subtractItem.setIcon(R.drawable.minus_sm);
                 menu.addMenuItem(subtractItem);
 
                 SwipeMenuItem editItem = new SwipeMenuItem(getContext());
                 editItem.setBackground(new ColorDrawable(Color.parseColor("#5292d1")));
-                editItem.setWidth(dp2px(40));
+                editItem.setWidth(dp2px(60));
                 editItem.setIcon(R.drawable.pencil_sm);
                 menu.addMenuItem(editItem);
             }
