@@ -67,6 +67,7 @@ public class PhotoActivityFragmentPortrait extends Fragment {
 
         mSwipeMenuListView = getView().findViewById(R.id.image_list);
 
+        // Create swipe menu items
         SwipeMenuCreator creator = new SwipeMenuCreator() {
 
             @Override
@@ -128,6 +129,9 @@ public class PhotoActivityFragmentPortrait extends Fragment {
         super.onActivityCreated(savedInstanceState);
     }
 
+    /**
+     * Used to handle UI changes requests
+     */
     class PortraitUIHandler extends Handler {
 
         @Override
@@ -140,6 +144,11 @@ public class PhotoActivityFragmentPortrait extends Fragment {
         }
     }
 
+    /**
+     * @param dp
+     * @return
+     * Calculates pixel of screen based on DP of device
+     */
     private int dp2px(int dp) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
     }

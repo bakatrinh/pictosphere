@@ -12,11 +12,12 @@ import java.text.DateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+/**
+ * An AsyncTask used to retrieve weather JSON data from Open Weather
+ */
 public class WeatherDataAsync {
-
     private static final String OPEN_WEATHER_MAP_URL =
             "http://api.openweathermap.org/data/2.5/weather?lat=%s&lon=%s&units=metric";
-
     private static final String OPEN_WEATHER_MAP_API = "5e108874392bdc3d1d6997c7881d3316";
 
     public static String setWeatherIcon(int actualId, long sunrise, long sunset) {

@@ -64,15 +64,7 @@ public class PictosphereStorage extends ContentProvider {
     public int delete(Uri uri, String selection, String[] selectionArgs) {
         int count = 0;
         db = mOpenHelper.getWritableDatabase();
-        switch (sUriMatcher.match(uri)) {
-            case 1:
-                count = db.delete(PICTOSPHERE_IMAGE_POSTS_TABLE, selection, selectionArgs);
-                break;
-
-            case 2:
-                count = db.delete(PICTOSPHERE_IMAGE_POSTS_TABLE, selection, selectionArgs);
-                break;
-        }
+        count = db.delete(PICTOSPHERE_IMAGE_POSTS_TABLE, selection, selectionArgs);
         notifyChange(uri);
         return count;
     }
@@ -113,8 +105,7 @@ public class PictosphereStorage extends ContentProvider {
             sortOrder = "date_created DESC";
         }
         db = mOpenHelper.getWritableDatabase();
-        Cursor c = sqLiteQueryBuilder.query(db, projection, selection, selectionArgs, null, null, sortOrder);
-        return c;
+        return sqLiteQueryBuilder.query(db, projection, selection, selectionArgs, null, null, sortOrder);
     }
 
     @Override
@@ -133,7 +124,6 @@ public class PictosphereStorage extends ContentProvider {
         }
         notifyChange(uri);
         return count;
-        //throw new UnsupportedOperationException("Not yet implemented");
     }
 
     private void notifyChange(Uri uri) {
@@ -150,17 +140,16 @@ public class PictosphereStorage extends ContentProvider {
         }
 
         @Override
-        public void onCreate(SQLiteDatabase sqLiteDatabase) {
-            sqLiteDatabase.execSQL(CREATE_DB_TABLE);
-        }
-
-        @Override
         public void onUpgrade(SQLiteDatabase sqLiteDatabase, int oldVersion, int newVersion) {
             if (oldVersion < newVersion) {
-                Log.d(MainActivity.TAG, "Upgrading " + PICTOSPHERE_IMAGE_POSTS_TABLE + " old version (" + oldVersion + ") to new version (" + newVersion + ")");
                 sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + PICTOSPHERE_IMAGE_POSTS_TABLE);
                 onCreate((sqLiteDatabase));
             }
+        }
+
+        @Override
+        public void onCreate(SQLiteDatabase sqLiteDatabase) {
+            sqLiteDatabase.execSQL(CREATE_DB_TABLE);
         }
     }
 }

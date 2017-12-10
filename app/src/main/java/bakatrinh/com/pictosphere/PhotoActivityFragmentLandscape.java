@@ -121,6 +121,11 @@ public class PhotoActivityFragmentLandscape extends Fragment implements GoogleMa
         mContext.enableMyLocation();
     }
 
+    /**
+     * @return
+     * Sets default location to current location on Google Map Fragment. Zooms out to show
+     * a larger area
+     */
     @Override
     public boolean onMyLocationButtonClick() {
         if (mCurrentLocation != null) {
@@ -142,6 +147,9 @@ public class PhotoActivityFragmentLandscape extends Fragment implements GoogleMa
         //Toast.makeText(this, "Current location:\n" + location, Toast.LENGTH_LONG).show();
     }
 
+    /**
+     * Used to handle UI changes requests
+     */
     class LandscapeUIHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
@@ -195,6 +203,10 @@ public class PhotoActivityFragmentLandscape extends Fragment implements GoogleMa
         }
     }
 
+    /**
+     * Custom Adapter that displays a small window with the image thumbnail and information
+     * Appears when user taps on a marker on Google Map
+     */
     class CustomInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
 
         // These are both viewgroups containing an ImageView with id "badge" and two TextViews with id
@@ -219,6 +231,12 @@ public class PhotoActivityFragmentLandscape extends Fragment implements GoogleMa
             return mContents;
         }
 
+        /**
+         * @param marker
+         * @param view
+         * Set marker thumbnail to image file
+         * Make title string and snippet string colorful
+         */
         private void render(Marker marker, View view) {
             final int marker_id = (int) marker.getTag();
 

@@ -13,6 +13,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -24,7 +25,12 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -109,6 +115,15 @@ public class ImageInfoActivity extends AppCompatActivity {
                 return true;
 
             case R.id.action_log_off:
+                GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestEmail().build();
+                GoogleSignInClient googleSignInClient = GoogleSignIn.getClient(this, gso);
+                googleSignInClient.revokeAccess()
+                        .addOnCompleteListener(this, new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                            }
+                        });
+
                 Intent closeActivitySignal = new Intent(MainActivity.BUNDLE_FINISH_ACTIVITY);
                 sendBroadcast(closeActivitySignal);
 
@@ -123,6 +138,10 @@ public class ImageInfoActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * @param hasFocus
+     * When the view is ready, resize the image and display all info on the view
+     */
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         // TODO Auto-generated method stub
@@ -153,13 +172,20 @@ public class ImageInfoActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * Close the activity when the back button is pressed
+     */
     @Override
     public void onBackPressed() {
         super.onBackPressed();
         this.finish();
     }
 
-    LatLng getCurrentLocation() {
+    /**
+     * @return
+     * Used to obtain the current device location
+     */
+    public LatLng getCurrentLocation() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             LocationManager locationManager = (LocationManager) getSystemService(MainActivity.LOCATION_SERVICE);
             Criteria criteria = new Criteria();
@@ -189,6 +215,10 @@ public class ImageInfoActivity extends AppCompatActivity {
         finish();
     }
 
+    /**
+     * @param v
+     * Deletes the picture
+     */
     public void deletePicture(View v) {
         String whereClause = PictosphereStorage.COLUMN_IMAGE_POSTS_ID + "=?";
         String[] whereArgs = {id};
@@ -201,6 +231,9 @@ public class ImageInfoActivity extends AppCompatActivity {
         finish();
     }
 
+    /**
+     * Used to handle UI changes requests
+     */
     class UIHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {

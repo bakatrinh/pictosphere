@@ -47,6 +47,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
+        if (account != null) {
+            account.getEmail();
+            mGoogleEmail = account.getEmail();
+            Intent intent = new Intent(MainActivity.this, PhotoActivity.class);
+            intent.putExtra(MainActivity.BUNDLE_GOOGLE_EMAIL, mGoogleEmail);
+            startActivity(intent);
+            finish();
+        }
+
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestEmail().build();
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
@@ -99,7 +109,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
         if (requestCode == MainActivity.RC_SIGN_IN) {
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
             handleSignInResult(task);

@@ -48,7 +48,6 @@
                 android:text="@string/common_signin_button_text_long"/>
         </LinearLayout>
 
-
     </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>

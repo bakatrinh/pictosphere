@@ -47,7 +47,12 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -154,9 +159,17 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
                 return true;
 
             case R.id.action_log_off:
+                GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestEmail().build();
+                GoogleSignInClient googleSignInClient = GoogleSignIn.getClient(this, gso);
+                googleSignInClient.revokeAccess()
+                        .addOnCompleteListener(this, new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                            }
+                        });
+
                 Intent closeActivitySignal = new Intent(MainActivity.BUNDLE_FINISH_ACTIVITY);
                 sendBroadcast(closeActivitySignal);
-
                 intent = new Intent(PhotoActivity.this, MainActivity.class);
                 startActivity(intent);
                 finish();
@@ -310,6 +323,12 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         }
     }
 
+    /**
+     * @return
+     * @throws IOException
+     * Attempt to create a File to be used by Camera activity so that it has a place
+     * to store the image
+     */
     private File createImageFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
@@ -326,6 +345,12 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         return image;
     }
 
+    /**
+     * @return
+     * @throws IOException
+     * Attempt to create a File to be used to save a thumbnail of
+     * the image that was taken
+     */
     private File createImageFileThumb() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
@@ -342,6 +367,11 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         return image;
     }
 
+    /**
+     * @param position
+     * Create a popup dialog that allows the user to edit
+     * the message of the image as well as latitude and longitude
+     */
     public void editImage(int position) {
         final ArrayList<String> imageData = mImagesContainer.get(position);
 
@@ -453,6 +483,9 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         });
     }
 
+    /**
+     * Start camera activity if file was successfully created for the activity
+     */
     public void startCameraActivity() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
@@ -483,6 +516,10 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         }
     }
 
+    /**
+     * Obtain location and image data that was just captured
+     * Store it on SQLite database
+     */
     public void insertNewImage() {
         Runnable insertNewImageTask = new Runnable() {
             @Override
@@ -533,6 +570,12 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         new Thread(insertNewImageTask).start();
     }
 
+    /**
+     * Called initially when activity first launched. Also called
+     * when SQLite database data is modified
+     * Retrieves all image data on database and store on an ArrayList
+     * to be used by the listview adapter
+     */
     public void rebuildImagesArray() {
         final Runnable imageArrayTask = new Runnable() {
             @Override
@@ -582,6 +625,12 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         new Thread(imageArrayTask).start();
     }
 
+    /**
+     * @param id
+     * @param filepath
+     * @param filepaththumb
+     * Deletes entry based on ID on SQLite database. Also deletes the file it is linked to
+     */
     public void deleteAPicture(final String id, final String filepath, final String filepaththumb) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Delete?")
@@ -607,12 +656,22 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         dialog.show();
     }
 
+    /**
+     * @param position
+     * An image is selected. Start the ImageInfoActivity
+     * pass data of the image that was selected
+     */
     public void imageInfo(int position) {
         Intent intent = new Intent(PhotoActivity.this, ImageInfoActivity.class);
         intent.putExtra(MainActivity.BUNDLE_IMAGE_DATA, mImagesContainer.get(position));
         startActivity(intent);
     }
 
+    /**
+     * @param path
+     * @return
+     * Converts file path to bitmap object
+     */
     public static Bitmap getBitmapFromPath(String path) {
         File imgFile = new File(path);
         if (imgFile.exists()) {
@@ -622,6 +681,14 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         return null;
     }
 
+    /**
+     * @param latitude
+     * @param longitude
+     * @return
+     * @throws IOException
+     * Attempt to obtain geocoding address based on latitude and longitude
+     * Format a string using the geocoding information
+     */
     public String getAddressGeoCoder(double latitude, double longitude) throws IOException {
         String returnString = "";
         Geocoder geocoder;
@@ -658,6 +725,12 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         return returnString;
     }
 
+    /**
+     * @param imageItem
+     * @return
+     * Used by adapter to generate all the String data required to display
+     * on each listview item
+     */
     public String getAdapterTextString(ArrayList<String> imageItem) {
         String returnString = "";
         if (!imageItem.get(6).isEmpty() && imageItem.get(6).length() > 0) {
@@ -684,6 +757,13 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         return returnString;
     }
 
+    /**
+     * @param filePath
+     * @param targetW
+     * @param targetH
+     * @return
+     * Resize a bitmap to a different dimension
+     */
     public static Bitmap resizeImage(String filePath, int targetW, int targetH) {
 
         // Get the dimensions of the bitmap
@@ -705,11 +785,19 @@ public class PhotoActivity extends AppCompatActivity implements ActivityCompat.O
         return bitmap;
     }
 
+    /**
+     * @param dp
+     * @return
+     * Calculate pixel equivalent of a specified DP based on device DP
+     */
     public int dpToPx(int dp) {
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         return Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT));
     }
 
+    /**
+     * Custom ListView adapter that displays thumbnails and text
+     */
     class ListDataAdapter extends BaseAdapter {
         ViewHolder holder;
 

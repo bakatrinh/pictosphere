@@ -11,6 +11,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Environment;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -26,10 +27,18 @@ import android.view.animation.RotateAnimation;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 
 import java.io.File;
 
+/**
+ * Activity that shows compass, weather, and allow the user to delete all images on storage and SQLite table
+ */
 public class AppInfoActivity extends AppCompatActivity implements SensorEventListener {
 
     private double latitude;
@@ -113,6 +122,15 @@ public class AppInfoActivity extends AppCompatActivity implements SensorEventLis
                 return true;
 
             case R.id.action_log_off:
+                GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestEmail().build();
+                GoogleSignInClient googleSignInClient = GoogleSignIn.getClient(this, gso);
+                googleSignInClient.revokeAccess()
+                        .addOnCompleteListener(this, new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                            }
+                        });
+
                 Intent closeActivitySignal = new Intent(MainActivity.BUNDLE_FINISH_ACTIVITY);
                 sendBroadcast(closeActivitySignal);
 
@@ -143,6 +161,10 @@ public class AppInfoActivity extends AppCompatActivity implements SensorEventLis
         unregisterReceiver(finishActivityReceiver);
     }
 
+    /**
+     * @param event
+     * Update the compass when the sensor data is changed
+     */
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor == mAccelerometer) {
@@ -165,7 +187,6 @@ public class AppInfoActivity extends AppCompatActivity implements SensorEventLis
                     0.5f);
 
             ra.setDuration(250);
-
             ra.setFillAfter(true);
 
             mPointer.startAnimation(ra);
@@ -179,6 +200,9 @@ public class AppInfoActivity extends AppCompatActivity implements SensorEventLis
 
     }
 
+    /**
+     * Close the activity when the back button is pressed
+     */
     @Override
     public void onBackPressed() {
         super.onBackPressed();
@@ -189,6 +213,10 @@ public class AppInfoActivity extends AppCompatActivity implements SensorEventLis
         finish();
     }
 
+    /**
+     * @param view
+     * Erases ALL data on SQLite table and image files on storage
+     */
     public void eraseData(View view) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Are you sure you want to erase all data?")
@@ -211,6 +239,10 @@ public class AppInfoActivity extends AppCompatActivity implements SensorEventLis
         dialog.show();
     }
 
+    /**
+     * @param fileOrDirectory
+     * Recursively deletes all files in a path or file
+     */
     public void deleteRecursive(File fileOrDirectory) {
         if (fileOrDirectory.isDirectory()) {
             for (File child : fileOrDirectory.listFiles()) {
